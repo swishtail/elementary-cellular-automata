@@ -1,0 +1,134 @@
+#lang racket/base
+(require pict)
+(require graphite)
+
+(define (zeros n)
+  (if (zero? n)
+      '()
+      (cons 0 (zeros (- n 1)))))
+
+(define (next-cells previous-cells rule)
+  (define (list-head x k)
+    (if (zero? k)
+        '()
+        (cons (car x)
+              (list-head (cdr x)
+                         (- k 1)))))
+  (define (last x)
+    (if (null? (cdr x))
+        (car x)
+        (last (cdr x))))
+  (define (window cells) (list-head cells 3))
+  (let ((last-cell (list (last previous-cells))))
+    (cons (rule
+           (window
+            (append last-cell
+                    (list-head previous-cells 2))))
+          (let slide-window ((remaining-cells previous-cells))
+            (if (null? (cddr remaining-cells))
+                (cons (rule
+                       (window
+                        (append remaining-cells
+                                (car (list previous-cells)))))
+                      '())
+                (cons (rule (window remaining-cells))
+                      (slide-window (cdr remaining-cells))))))))
+
+(define (make-rule n)
+  (define (dec->bits d)
+    (let loop ((n d)
+               (bits '()))
+      (if (zero? n)
+          bits
+          (loop (floor (/ n 2))
+                (cons (remainder n 2) bits)))))
+  (define (make-3-bit-pattern pattern)
+    (append (zeros (- 3 (length pattern))) pattern))
+  (let*
+      ((rule (dec->bits n))
+       (rule-length (length rule))
+       (full-rule (append (zeros (- 8 rule-length)) rule)))
+    (lambda (window)
+      (let loop ((n 7)
+                 (pattern (make-3-bit-pattern (dec->bits 7)))
+                 (new-state full-rule))
+        (if (equal? window pattern)
+            (car new-state)
+            (loop (- n 1)
+                  (make-3-bit-pattern (dec->bits (- n 1)))
+                  (cdr new-state)))))))
+
+(define (run rule initial iterations)
+  (if (zero? iterations)
+      '()
+      (cons initial
+            (run rule
+                 (next-cells initial rule)
+                 (- iterations 1)))))
+
+(define (initialise-right n)
+  (if (zero? n)
+      (list 1)
+      (cons 0 (initialise-right (- n 1)))))
+
+(define (initialise-left n)
+  (cons 1 (zeros (- n 1))))
+
+(define (initialise-centre n)
+  (define (list-replace x k e)
+    (if (zero? k)
+        (cons e
+              (cdr x))
+        (cons (car x)
+              (list-replace (cdr x) (- k 1) e))))
+  (let ((centre (floor (/ n 2)))
+        (initial-zeros (zeros n)))
+    (list-replace initial-zeros centre 1)))
+
+(define (initialise-random n)
+  (if (= n 1)
+      (list (random 2))
+      (cons (random 2)
+            (initialise-random (- n 1)))))
+
+(define (print-run x)
+  (define (print-cells cells)
+    (if (null? cells)
+        (newline)
+        (if (zero? (car cells))
+            (begin (display " ")
+                   (print-cells (cdr cells)))
+            (begin (display "#")
+                   (print-cells (cdr cells))))))
+  (for-each print-cells x))
+
+(define (draw-run x)
+  (define cell-x 2)
+  (define cell-y 2)
+  (define (empty-cell) (blank cell-x cell-y))
+  (define (filled-cell) (filled-rectangle cell-x cell-y))
+  (define (draw-cells cells)
+    (if (null? (cdr cells))
+        (if (zero? (car cells))
+            (empty-cell)
+            (filled-cell))
+        (if (zero? (car cells))
+            (hc-append (empty-cell)
+                       (draw-cells (cdr cells)))
+            (hc-append (filled-cell)
+                       (draw-cells (cdr cells))))))
+  (let recurse ((remaining x))
+    (if (null? (cdr remaining))
+        (draw-cells (car remaining))
+        (vc-append (draw-cells (car remaining))
+                   (recurse (cdr remaining))))))
+
+(define initial-cells (initialise-random 256))
+(define iterations 256)
+(define rule-110 (make-rule 110))
+
+; (print-run (run rule-110 initial-cells iterations)) ; print with ASCII
+(draw-run (run rule-110 initial-cells iterations))  ; draw with pict
+
+; Requires graphite library:
+; (save-pict (draw-run (run rule-110 initial-cells iterations)) "rule-110.png")
