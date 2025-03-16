@@ -123,12 +123,12 @@
         (vc-append (draw-cells (car remaining))
                    (recurse (cdr remaining))))))
 
-(define initial-cells (initialise-random 256))
-(define iterations 256)
-(define rule-110 (make-rule 110))
+; (define initial-cells (initialise-random 256))
+; (define iterations 256)
+; (define rule-110 (make-rule 110))
 
 ; (print-run (run rule-110 initial-cells iterations)) ; print with ASCII
-(draw-run (run rule-110 initial-cells iterations))  ; draw with pict
+; (draw-run (run rule-110 initial-cells iterations))  ; draw with pict
 
 ; Requires graphite library:
 ; (save-pict (draw-run (run rule-110 initial-cells iterations)) "rule-110.png")
