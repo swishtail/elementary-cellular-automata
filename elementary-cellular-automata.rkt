@@ -1,6 +1,5 @@
 #lang racket/base
 (require pict)
-(require graphite)
 
 (define (zeros n)
   (if (zero? n)
@@ -123,12 +122,15 @@
         (vc-append (draw-cells (car remaining))
                    (recurse (cdr remaining))))))
 
-; (define initial-cells (initialise-random 256))
-; (define iterations 256)
-; (define rule-110 (make-rule 110))
+(define (save-pict p name)
+  (send (pict->bitmap p) save-file name 'png))
+
+; (define initial-cells (initialise-random 256)) ; first generation of cells
+; (define iterations 256)                        ; number of iterations
+; (define rule-110 (make-rule 110))              ; generate rule
 
 ; (print-run (run rule-110 initial-cells iterations)) ; print with ASCII
 ; (draw-run (run rule-110 initial-cells iterations))  ; draw with pict
 
-; Requires graphite library:
+; Save pict to .png
 ; (save-pict (draw-run (run rule-110 initial-cells iterations)) "rule-110.png")
