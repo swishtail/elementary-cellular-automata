@@ -7,31 +7,24 @@
       (cons 0 (zeros (- n 1)))))
 
 (define (next-cells previous-cells rule)
-  (define (list-head x k)
-    (if (zero? k)
-        '()
-        (cons (car x)
-              (list-head (cdr x)
-                         (- k 1)))))
-  (define (last x)
-    (if (null? (cdr x))
-        (car x)
-        (last (cdr x))))
-  (define (window cells) (list-head cells 3))
-  (let ((last-cell (list (last previous-cells))))
-    (cons (rule
-           (window
-            (append last-cell
-                    (list-head previous-cells 2))))
-          (let slide-window ((remaining-cells previous-cells))
-            (if (null? (cddr remaining-cells))
-                (cons (rule
-                       (window
-                        (append remaining-cells
-                                (car (list previous-cells)))))
-                      '())
-                (cons (rule (window remaining-cells))
-                      (slide-window (cdr remaining-cells))))))))
+  (define (wrap x)
+    (let wrap-iter ((rem x)
+                    (f (car x))
+                    (dlist (lambda (x) x)))
+      (if (null? (cdr rem))
+          (cons (car rem)
+                (dlist (list (car rem) f)))
+          (wrap-iter (cdr rem)
+                     f
+                     (lambda (y)
+                       (dlist (cons (car rem) y)))))))
+  (define (window cells) (take cells 3))
+  (let ((wrapped-cells (wrap previous-cells)))
+    (let slide-window ((remaining-cells wrapped-cells))
+      (if (null? (cdddr remaining-cells))
+          (cons (rule (window remaining-cells)) '())
+          (cons (rule (window remaining-cells))
+                (slide-window (cdr remaining-cells)))))))
 
 (define (make-rule n)
   (define (dec->bits d)
@@ -43,10 +36,9 @@
                 (cons (remainder n 2) bits)))))
   (define (make-3-bit-pattern pattern)
     (append (zeros (- 3 (length pattern))) pattern))
-  (let*
-      ((rule (dec->bits n))
-       (rule-length (length rule))
-       (full-rule (append (zeros (- 8 rule-length)) rule)))
+  (let* ((rule (dec->bits n))
+         (rule-length (length rule))
+         (full-rule (append (zeros (- 8 rule-length)) rule)))
     (lambda (window)
       (let loop ((n 7)
                  (pattern (make-3-bit-pattern (dec->bits 7)))
@@ -71,13 +63,12 @@
       (cons 0 (initialise-right (- n 1)))))
 
 (define (initialise-left n)
-  (cons 1 (zeros (- n 1))))
+  (cons 1 (zeros n)))
 
 (define (initialise-centre n)
   (define (list-replace x k e)
     (if (zero? k)
-        (cons e
-              (cdr x))
+        (cons e (cdr x))
         (cons (car x)
               (list-replace (cdr x) (- k 1) e))))
   (let ((centre (floor (/ n 2)))
